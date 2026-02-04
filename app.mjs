@@ -5,7 +5,7 @@ import connectionPool from "./utils/db.mjs";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 4000;
 app.use(
   cors({
     origin: [
@@ -18,8 +18,11 @@ app.use(
     credentials: true,
   }),
 );
-
 app.use(express.json());
+
+app.get("/health", (req, res) => {
+  return res.json({ status: "OK", message: "Server is running" });
+});
 
 app.get("/profiles", (req, res) => {
   return res.json({
@@ -28,6 +31,19 @@ app.get("/profiles", (req, res) => {
       age: 20,
     },
   });
+});
+
+app.get("/posts", async (req, res) => {
+  try {
+    const result = await connectionPool.query("SELECT * FROM posts ");
+    return res.status(200).json({
+      data: result.rows,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server could not create post because database connection",
+    });
+  }
 });
 
 app.post("/posts", async (req, res) => {
