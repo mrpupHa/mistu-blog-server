@@ -35,13 +35,35 @@ app.get("/profiles", (req, res) => {
 
 app.get("/posts", async (req, res) => {
   try {
-    const result = await connectionPool.query("SELECT * FROM posts ");
+    const result = await connectionPool.query(`select posts.*, categories.name as category from posts left join categories on posts.category_id = categories.id`);
     return res.status(200).json({
       data: result.rows,
     });
   } catch (error) {
     return res.status(500).json({
       message: "Server could not create post because database connection",
+    });
+  }
+});
+
+app.get("/posts/:postId", async (req, res) => {
+  const getPostId = req.params.postId;
+  try {
+    const result = await connectionPool.query(
+      `select posts.*, categories.name as category from posts left join categories on posts.category_id = categories.id where posts.id = $1`,
+      [getPostId],
+    );
+    if (result.rowCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Server could not find a requested post" });
+    }
+    return res.status(200).json({
+      data: result.rows[0],
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server could not read post because database connection",
     });
   }
 });
@@ -68,6 +90,59 @@ app.post("/posts", async (req, res) => {
   }
 });
 
+app.put("/posts/:postId", async (req, res) => {
+  const getPostId = req.params.postId;
+  const { title, image, category_id, description, content, status_id } =
+    req.body;
+  const upDatedContent = { ...req.body };
+  if (
+    !title ||
+    !image ||
+    !category_id ||
+    !description ||
+    !content ||
+    !status_id
+  ) {
+    return res
+      .status(404)
+      .json({ message: "Server could not find a requested post to update" });
+  }
+  try {
+    const result = await connectionPool.query(`update`);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server could not update post because database connection",
+    });
+  }
+});
+
+app.delete("/posts/:postId", async (req, res) => {
+  const getPostId = req.params.postId;
+
+  try {
+    const checkPost = await connectionPool.query(
+      `select * from posts where id =$`,
+      [getPostId],
+    );
+    if (checkPost.rowCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Server could not find a requested post" });
+    }
+    const result = await connectionPool.query(
+      `delete from posts where id =$1`,
+      [getPostId],
+    );
+    return res.status(200).json({ message: "Deleted post sucessfully" });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server could not delete post because database connection",
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running at ${port}`);
 });
+
+export default app;
