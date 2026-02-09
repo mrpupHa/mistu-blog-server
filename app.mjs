@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectionPool from "./utils/db.mjs";
+import { validateCreatePostData } from "./middlewares/post.validation.mjs";
 dotenv.config();
 
 const app = express();
@@ -35,7 +36,9 @@ app.get("/profiles", (req, res) => {
 
 app.get("/posts", async (req, res) => {
   try {
-    const result = await connectionPool.query(`select posts.*, categories.name as category from posts left join categories on posts.category_id = categories.id`);
+    const result = await connectionPool.query(
+      `select posts.*, categories.name as category from posts left join categories on posts.category_id = categories.id`,
+    );
     return res.status(200).json({
       data: result.rows,
     });
@@ -68,7 +71,7 @@ app.get("/posts/:postId", async (req, res) => {
   }
 });
 
-app.post("/posts", async (req, res) => {
+app.post("/posts", [validateCreatePostData], async (req, res) => {
   const newPost = req.body;
   try {
     const query = `insert into posts (title, image, category_id, description, content, status_id)
@@ -90,7 +93,7 @@ app.post("/posts", async (req, res) => {
   }
 });
 
-app.put("/posts/:postId", async (req, res) => {
+app.put("/posts/:postId", [validateCreatePostData], async (req, res) => {
   const getPostId = req.params.postId;
   const { title, image, category_id, description, content, status_id } =
     req.body;
